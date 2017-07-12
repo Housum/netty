@@ -136,6 +136,14 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 接受客户端的链接，
+     * @see io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor
+     * 服务端再Acceptor
+     * @param buf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
         SocketChannel ch = SocketUtils.accept(javaChannel());

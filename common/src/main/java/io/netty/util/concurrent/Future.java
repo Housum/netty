@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * The result of an asynchronous operation.
+ * 异步操作的结果类
  */
 @SuppressWarnings("ClassNameSameAsAncestorName")
 public interface Future<V> extends java.util.concurrent.Future<V> {
@@ -51,6 +52,9 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * specified listener is notified when this future is
      * {@linkplain #isDone() done}.  If this future is already
      * completed, the specified listener is notified immediately.
+     * 设置监听（观察者模式），当Future的isDone()返回true的时候，那么监听
+     * 者将会被通知，如果给一个已经完成的Future设置监听的话,那么被设置之后，
+     * 马上会被通知
      */
     Future<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
 
@@ -83,6 +87,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     /**
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
+     * 堵塞直到isDone返回
      */
     Future<V> sync() throws InterruptedException;
 
@@ -138,6 +143,8 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * @return {@code true} if and only if the future was completed within
      *         the specified time limit
+     *
+     * 不响应中断直到Future完成
      */
     boolean awaitUninterruptibly(long timeout, TimeUnit unit);
 
@@ -148,6 +155,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * @return {@code true} if and only if the future was completed within
      *         the specified time limit
+     *
      */
     boolean awaitUninterruptibly(long timeoutMillis);
 
@@ -156,6 +164,9 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * As it is possible that a {@code null} value is used to mark the future as successful you also need to check
      * if the future is really done with {@link #isDone()} and not relay on the returned {@code null} value.
+     *
+     * 马上返回结果，如果没有完成的话，那么直接返回null，但是同时也需要注意
+     * 有时候他的用法是在成功之后也返回null，所以最好还是使用isDone进行判断
      */
     V getNow();
 
@@ -163,6 +174,8 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * {@inheritDoc}
      *
      * If the cancellation was successful it will fail the future with an {@link CancellationException}.
+     *
+     * 如果取消成功的话，那么cause将会返回CancellationException
      */
     @Override
     boolean cancel(boolean mayInterruptIfRunning);

@@ -32,6 +32,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     /**
      * Returns {@code true} if and only if all {@link EventExecutor}s managed by this {@link EventExecutorGroup}
      * are being {@linkplain #shutdownGracefully() shut down gracefully} or was {@linkplain #isShutdown() shut down}.
+     * 是否在停止中，只要调用了shutdownGracefully方法之后将会返回true
      */
     boolean isShuttingDown();
 
@@ -55,12 +56,19 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      * @param unit        the unit of {@code quietPeriod} and {@code timeout}
      *
      * @return the {@link #terminationFuture()}
+     *
+     * 优雅的关闭,这个方法能够保证未执行完的任务不会被拒绝，具体的
+     * 做法如下： 当调用了这个方法之后，isShuttingDown() 将返回true，并且
+     * 服务准备关闭，如果在quietPeriod时间内有任务进来的话，那么任务将会被执行
+     * 同时quietPeriod将会重新的计数，*但是 总的停止时间不会超过timeout
+     *
      */
     Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit);
 
     /**
      * Returns the {@link Future} which is notified when all {@link EventExecutor}s managed by this
      * {@link EventExecutorGroup} have been terminated.
+     * f返回一个Future,当服务停止的时候会被通知
      */
     Future<?> terminationFuture();
 

@@ -161,12 +161,20 @@ import java.util.concurrent.TimeUnit;
  *     // Connection established successfully
  * }
  * </pre>
+ *
+ * 注意几点：
+ * 1.Completed 操作的含义并不是成功，而是已经结束了，可能是由于
+ * setFailure，setSuccess,tryFailure,cancel等操作导致
+ * 2.await方法是堵塞的，建议不要使用，如果要使用的话，建议使用
+ * Listener的方法
+ *
  */
 public interface ChannelFuture extends Future<Void> {
 
     /**
      * Returns a channel where the I/O operation associated with this
      * future takes place.
+     * 和这个ChannelFuture关联的Channel
      */
     Channel channel();
 

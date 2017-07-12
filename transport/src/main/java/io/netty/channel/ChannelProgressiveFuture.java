@@ -21,6 +21,7 @@ import io.netty.util.concurrent.ProgressiveFuture;
 
 /**
  * An special {@link ChannelFuture} which is used to indicate the {@link FileRegion} transfer progress
+ * 关联上了Channel
  */
 public interface ChannelProgressiveFuture extends ChannelFuture, ProgressiveFuture<Void> {
     @Override

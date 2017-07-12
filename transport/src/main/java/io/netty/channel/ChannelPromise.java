@@ -21,6 +21,11 @@ import io.netty.util.concurrent.Promise;
 
 /**
  * Special {@link ChannelFuture} which is writable.
+ * 除了ChannelFuture之外的功能还具有可写的功能，
+ * 当异步操作完成的时候，就会各种结果给写入（失败或者成功）
+ * 成功的话，写入是数据，失败的话，写入的是cause，
+ *
+ * 主要的还是和Channel关联上了
  */
 public interface ChannelPromise extends ChannelFuture, Promise<Void> {
 
@@ -63,6 +68,8 @@ public interface ChannelPromise extends ChannelFuture, Promise<Void> {
 
     /**
      * Returns a new {@link ChannelPromise} if {@link #isVoid()} returns {@code true} otherwise itself.
+     * 如果isVoid返回true的话,那么将会返回一个新的ChannelPromise，如果返回false的话
+     * 那么将返回自己
      */
     ChannelPromise unvoid();
 }

@@ -319,6 +319,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             channel = channelFactory.newChannel();
+            //进行Channel的初始化，包括设置
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {

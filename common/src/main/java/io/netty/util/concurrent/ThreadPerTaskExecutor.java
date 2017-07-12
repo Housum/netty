@@ -18,6 +18,13 @@ package io.netty.util.concurrent;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * 提供现场，在netty中提供线程的地方
+ * 每执行一个任务就创建一个新的
+ * 线程。
+ * @see MultithreadEventExecutorGroup
+ * @see SingleThreadEventExecutor#doStartThread()
+ */
 public final class ThreadPerTaskExecutor implements Executor {
     private final ThreadFactory threadFactory;
 

@@ -16,15 +16,19 @@
 
 package io.netty.util.concurrent;
 
+/**
+ * ProgressivePromise 的一个默认实现，继承了DefaultPromise 意味着他有DefaultPromise
+ * 的功能和数据，同时也需要注意，我们的addListener(GenericFutureListener listener)中的
+ * GenericFutureListener 也是ChannelProgressiveFutureListenerd的父类
+ */
 public class DefaultProgressivePromise<V> extends DefaultPromise<V> implements ProgressivePromise<V> {
 
     /**
      * Creates a new instance.
-     *
+     * <p>
      * It is preferable to use {@link EventExecutor#newProgressivePromise()} to create a new progressive promise
      *
-     * @param executor
-     *        the {@link EventExecutor} which is used to notify the promise when it progresses or it is complete
+     * @param executor the {@link EventExecutor} which is used to notify the promise when it progresses or it is complete
      */
     public DefaultProgressivePromise(EventExecutor executor) {
         super(executor);

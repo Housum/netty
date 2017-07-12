@@ -17,6 +17,7 @@ package io.netty.util.concurrent;
 
 /**
  * Special {@link Future} which is writable.
+ * 除了Future的功能之外，还提供了可写的功能
  */
 public interface Promise<V> extends Future<V> {
 
@@ -43,6 +44,8 @@ public interface Promise<V> extends Future<V> {
      * listeners.
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
+     *
+     * 将Future设置为失败，如果不能够设置的话，那么会抛出异常
      */
     Promise<V> setFailure(Throwable cause);
 
@@ -53,6 +56,10 @@ public interface Promise<V> extends Future<V> {
      * @return {@code true} if and only if successfully marked this future as
      *         a failure. Otherwise {@code false} because this future is
      *         already marked as either a success or a failure.
+     *
+     *
+     * 和上面的不同，返回true的时候表示设置成功了，返回false的时候表示
+     * 设置失败了
      */
     boolean tryFailure(Throwable cause);
 

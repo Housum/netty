@@ -91,6 +91,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
             throw new NullPointerException("promise");
         }
 
+        //这里是是channel注册的主要逻辑所在，将会注册Java NIO 的 ServerSocketChannel 和SocketChannel
         channel.unsafe().register(this, promise);
         return promise;
     }

@@ -25,6 +25,10 @@ import io.netty.util.concurrent.GenericFutureListener;
  * The default {@link ChannelProgressivePromise} implementation.  It is recommended to use
  * {@link Channel#newProgressivePromise()} to create a new {@link ChannelProgressivePromise} rather than calling the
  * constructor explicitly.
+ *
+ * 表述一个Channel的执行进程，在使用这个方法的时候，优先使用
+ * Channel.newProgressivePromise 而不是用构造方法
+ *
  */
 public class DefaultChannelProgressivePromise
         extends DefaultProgressivePromise<Void> implements ChannelProgressivePromise, FlushCheckpoint {
