@@ -20,6 +20,8 @@ public interface ResourceLeakTracker<T>  {
     /**
      * Records the caller's current stack trace so that the {@link ResourceLeakDetector} can tell where the leaked
      * resource was accessed lastly. This method is a shortcut to {@link #record(Object) record(null)}.
+     *
+     * 记录最后执行者的栈轨迹，以便于分析使用
      */
     void record();
 

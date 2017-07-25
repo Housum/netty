@@ -140,6 +140,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 boolean done = false;
                 for (int i = config().getWriteSpinCount() - 1; i >= 0; i--) {
+                    //这里是真实的写数据操作
                     if (doWriteMessage(msg, in)) {
                         done = true;
                         break;

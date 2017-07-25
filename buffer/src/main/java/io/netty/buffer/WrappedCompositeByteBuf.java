@@ -29,6 +29,11 @@ import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * 代理的作用？ 和被代理的对象的区别在于
+ * CompositeByteBuf的方法都将返回自己，便于
+ * 使用fluent接口
+ */
 class WrappedCompositeByteBuf extends CompositeByteBuf {
 
     private final CompositeByteBuf wrapped;

@@ -104,12 +104,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return estimatorHandle;
     }
 
-    final Object touch(Object msg, AbstractChannelHandlerContext next) {
-        return touch ? ReferenceCountUtil.touch(msg, next) : msg;
-    }
-
     private AbstractChannelHandlerContext newContext(EventExecutorGroup group, String name, ChannelHandler handler) {
         return new DefaultChannelHandlerContext(this, childExecutor(group), name, handler);
+    }
+
+    final Object touch(Object msg, AbstractChannelHandlerContext next) {
+        return touch ? ReferenceCountUtil.touch(msg, next) : msg;
     }
 
     private EventExecutor childExecutor(EventExecutorGroup group) {
@@ -972,6 +972,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return tail.disconnect();
     }
 
+    /**
+     * tail 调用，
+     * @return
+     */
     @Override
     public final ChannelFuture close() {
         return tail.close();

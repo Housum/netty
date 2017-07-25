@@ -796,6 +796,13 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return promise;
     }
 
+    /**
+     * 这一步将unsafe的write 和flush一起调用
+     * 因为在unsafe中并没有writeAndFlush这个方法，writeAndFlush这个方法只是对于
+     * 客户端程序员来使用的
+     * @param msg
+     * @param promise
+     */
     private void invokeWriteAndFlush(Object msg, ChannelPromise promise) {
         if (invokeHandler()) {
             invokeWrite0(msg, promise);

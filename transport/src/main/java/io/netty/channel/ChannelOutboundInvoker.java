@@ -76,7 +76,7 @@ public interface ChannelOutboundInvoker {
      * Request to close the {@link Channel} and notify the {@link ChannelFuture} once the operation completes,
      * either because the operation was successful or because of
      * an error.
-     *
+     * <p>
      * After it is closed it is not possible to reuse it again.
      * <p>
      * This will result in having the
@@ -95,14 +95,13 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#deregister(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
-     *
      */
     ChannelFuture deregister();
 
     /**
      * Request to bind to the given {@link SocketAddress} and notify the {@link ChannelFuture} once the operation
      * completes, either because the operation was successful or because of an error.
-     *
+     * <p>
      * The given {@link ChannelPromise} will be notified.
      * <p>
      * This will result in having the
@@ -115,9 +114,9 @@ public interface ChannelOutboundInvoker {
     /**
      * Request to connect to the given {@link SocketAddress} and notify the {@link ChannelFuture} once the operation
      * completes, either because the operation was successful or because of an error.
-     *
+     * <p>
      * The given {@link ChannelFuture} will be notified.
-     *
+     * <p>
      * <p>
      * If the connection fails because of a connection timeout, the {@link ChannelFuture} will get failed with
      * a {@link ConnectTimeoutException}. If it fails because of connection refused a {@link ConnectException}
@@ -134,7 +133,7 @@ public interface ChannelOutboundInvoker {
      * Request to connect to the given {@link SocketAddress} while bind to the localAddress and notify the
      * {@link ChannelFuture} once the operation completes, either because the operation was successful or because of
      * an error.
-     *
+     * <p>
      * The given {@link ChannelPromise} will be notified and also returned.
      * <p>
      * This will result in having the
@@ -147,7 +146,7 @@ public interface ChannelOutboundInvoker {
     /**
      * Request to disconnect from the remote peer and notify the {@link ChannelFuture} once the operation completes,
      * either because the operation was successful or because of an error.
-     *
+     * <p>
      * The given {@link ChannelPromise} will be notified.
      * <p>
      * This will result in having the
@@ -161,7 +160,7 @@ public interface ChannelOutboundInvoker {
      * Request to close the {@link Channel} and notify the {@link ChannelFuture} once the operation completes,
      * either because the operation was successful or because of
      * an error.
-     *
+     * <p>
      * After it is closed it is not possible to reuse it again.
      * The given {@link ChannelPromise} will be notified.
      * <p>
@@ -176,7 +175,7 @@ public interface ChannelOutboundInvoker {
      * Request to deregister from the previous assigned {@link EventExecutor} and notify the
      * {@link ChannelFuture} once the operation completes, either because the operation was successful or because of
      * an error.
-     *
+     * <p>
      * The given {@link ChannelPromise} will be notified.
      * <p>
      * This will result in having the
@@ -226,6 +225,7 @@ public interface ChannelOutboundInvoker {
 
     /**
      * Shortcut for call {@link #write(Object)} and {@link #flush()}.
+     * 相当于调用了 两个方法
      */
     ChannelFuture writeAndFlush(Object msg);
 
@@ -250,6 +250,10 @@ public interface ChannelOutboundInvoker {
      * Create a new {@link ChannelFuture} which is marked as failed already. So {@link ChannelFuture#isSuccess()}
      * will return {@code false}. All {@link FutureListener} added to it will be notified directly. Also
      * every call of blocking methods will just return without blocking.
+     *
+     * 创建了一个已经被标记未失败的ChannelFuture，和newSucceededFuture()都是作为便捷的方法
+     * 同时里面的状态也是设置好了的(isSuccess 或者 isFailure)
+     * 同时对于那些堵塞操作也会直接返回
      */
     ChannelFuture newFailedFuture(Throwable cause);
 
@@ -266,6 +270,15 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelPipeline#fireExceptionCaught(Throwable)} in this case.
      * </p>
      * <strong>Be aware this is an expert feature and should be used with care!</strong>
+     * <p>
+     * <p>
+     * 这个方法在使用的过程中需要十分的注意，因为这个返回的ChannelPromise对于大部分的操作都是失败的,
+     * 并且会抛出异常,并且也不能够在调用isSuccess和isDone等操作的时候永远返回false
+     * 唯一使用的地方就是在{@link ChannelOutboundInvoker#write(Object, ChannelPromise)}.
+     * 那么这个有什么用呢？ 主要的作用就是在失败的时候（setFailure(cause)）的时候和调用
+     * {@link ChannelPipeline#fireExceptionCaught(Throwable)}
+     *
+     * @see io.netty.channel.VoidChannelPromise
      */
     ChannelPromise voidPromise();
 }

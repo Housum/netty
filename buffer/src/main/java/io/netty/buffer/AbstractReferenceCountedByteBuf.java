@@ -23,13 +23,17 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import static io.netty.util.internal.ObjectUtil.checkPositive;
 
 /**
- * Abstract base class for {@link ByteBuf} implementations that count references.
+ * Abstract base class for {@link ByteBuf} implementations that count references
+ * 该类主要所做得事是维护ByteBuf的引用关系
  */
 public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
 
     private static final AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> refCntUpdater =
             AtomicIntegerFieldUpdater.newUpdater(AbstractReferenceCountedByteBuf.class, "refCnt");
 
+    /*
+    * 当被第一次创建的时候,初始化为1
+    * */
     private volatile int refCnt = 1;
 
     protected AbstractReferenceCountedByteBuf(int maxCapacity) {
@@ -112,6 +116,10 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
     }
     /**
      * Called once {@link #refCnt()} is equals 0.
+     *
+     * 一般被认为没有被使用了，会被回收
+     *
+     *
      */
     protected abstract void deallocate();
 }

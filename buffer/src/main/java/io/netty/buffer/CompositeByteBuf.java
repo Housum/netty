@@ -40,6 +40,11 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * A virtual buffer which shows multiple buffers as a single merged buffer.  It is recommended to use
  * {@link ByteBufAllocator#compositeBuffer()} or {@link Unpooled#wrappedBuffer(ByteBuf...)} instead of calling the
  * constructor explicitly.
+ *
+ *  这是一个组合的ByteBuf，可以将多个ByteBuf merge到一个ByteBuf中，在使用中需要注意使用
+ *  {@link ByteBufAllocator#compositeBuffer()} or {@link Unpooled#wrappedBuffer(ByteBuf...)}而不是
+ *  使用构造函数
+ *
  */
 public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements Iterable<ByteBuf> {
 
@@ -257,6 +262,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
             // No need to consolidate - just add a component to the list.
             @SuppressWarnings("deprecation")
             Component c = new Component(buffer.order(ByteOrder.BIG_ENDIAN).slice());
+            //如果是最后一个，那么直接加入，让ArrayList自动扩容
             if (cIndex == components.size()) {
                 wasAdded = components.add(c);
                 if (cIndex == 0) {
@@ -278,6 +284,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
             }
             return cIndex;
         } finally {
+            // 如果没有增加成功,将内存进行释放，防止内存泄露
             if (!wasAdded) {
                 buffer.release();
             }
@@ -359,6 +366,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
     }
 
     private int addComponents0(boolean increaseIndex, int cIndex, Iterable<ByteBuf> buffers) {
+        //判断是否是ByteBuf
         if (buffers instanceof ByteBuf) {
             // If buffers also implements ByteBuf (e.g. CompositeByteBuf), it has to go to addComponent(ByteBuf).
             return addComponent0(increaseIndex, cIndex, (ByteBuf) buffers);
@@ -373,6 +381,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
                 }
                 buffers = list;
             } finally {
+                // 如果没有达到try{}的最后一步，那么就将资源给清除
                 if (buffers != list) {
                     for (ByteBuf b: buffers) {
                         if (b != null) {
@@ -583,6 +592,10 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
         }
     }
 
+    /**
+     * 当composite中存在多余一个ByteBuf的时候，将抛出异常
+     * @return
+     */
     @Override
     public byte[] array() {
         switch (components.size()) {

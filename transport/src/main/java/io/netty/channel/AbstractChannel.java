@@ -55,12 +55,21 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     private final Channel parent;
     private final ChannelId id;
     private final Unsafe unsafe;
+    /**
+     * 对于每一个Channel，都将对应一个ChannelPipeline，也就是每一个channel都
+     * 对应了一个pipeline
+     * @see ChannelPipeline
+     * @see DefaultChannelPipeline
+     */
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
     private final CloseFuture closeFuture = new CloseFuture(this);
 
     private volatile SocketAddress localAddress;
     private volatile SocketAddress remoteAddress;
+    /**
+     * 这是很关键的一个变量，所有的异步操作都将通过它投入到异步队列中去
+     */
     private volatile EventLoop eventLoop;
     private volatile boolean registered;
 
@@ -224,6 +233,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.connect(remoteAddress, localAddress);
     }
 
+    /*
+    * 从这里到333行可以看出来,Channel并不做真正的IO操作，这些操作只是触发了我们自定义的
+    * ChannelHandler方法。ChannelHandler的起点或者是终点就是Unsafe
+    *
+    * */
     @Override
     public ChannelFuture disconnect() {
         return pipeline.disconnect();
@@ -415,6 +429,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     /**
      * {@link Unsafe} implementation which sub-classes must extend and use.
+     * 在Channel中调用的方法最终都将会通过pipeline 调用到Unsafe的方法
      */
     protected abstract class AbstractUnsafe implements Unsafe {
 
@@ -778,6 +793,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /*
+        *
+        * write操作并不会将信息马上给写到链路中，而将信息到放到了
+        * ChannelOutboundBuffer中，等到调用flush的时候，那个时候就会将
+        * 写到链路中去。
+        *
+        * */
         @Override
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
@@ -823,6 +845,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             flush0();
         }
 
+        /**
+         * 这里才是真正将数据给写到到链路中去
+         */
         @SuppressWarnings("deprecation")
         protected void flush0() {
             if (inFlush0) {

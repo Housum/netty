@@ -31,11 +31,19 @@ import java.nio.channels.ScatteringByteChannel;
  * A NIO {@link ByteBuffer} based buffer.  It is recommended to use {@link Unpooled#directBuffer(int)}
  * and {@link Unpooled#wrappedBuffer(ByteBuffer)} instead of calling the
  * constructor explicitly.
+ *
+ * 基于NIO 的 ByteBuffer实现的，强烈要求使用的时候不能直接使用构造的方式而是需要使用
+ * 帮助类，{@link Unpooled#directBuffer(int)} and {@link Unpooled#wrappedBuffer(ByteBuffer)}等
+ *
+ * 因为不是池化的，所以在不使用的时候是直接销毁了
  */
 public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     private final ByteBufAllocator alloc;
 
+    /*
+    * 主要就是通过原生的ByteBuffer进行实现
+    * */
     private ByteBuffer buffer;
     private ByteBuffer tmpNioBuf;
     private int capacity;
@@ -151,6 +159,8 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
             ByteBuffer newBuffer = allocateDirect(newCapacity);
             oldBuffer.position(0).limit(oldBuffer.capacity());
             newBuffer.position(0).limit(oldBuffer.capacity());
+            //将数据给设置进去，但是同时也调用了clear方法，表示将position 设置为了0 ，limit设置为capacity -1
+            //虽然如初，但是readerIndex 和 writerIndex 都没有变化，还是可以取得原有的数据
             newBuffer.put(oldBuffer);
             newBuffer.clear();
             setByteBuffer(newBuffer);
@@ -590,6 +600,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
     @Override
     public int setBytes(int index, ScatteringByteChannel in, int length) throws IOException {
         ensureAccessible();
+        // 将tmpBuf 引用指向了tmpNioBuf
         ByteBuffer tmpBuf = internalNioBuffer();
         tmpBuf.clear().position(index).limit(index + length);
         try {

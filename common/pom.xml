@@ -177,6 +177,8 @@
             <version>1.5.3-1</version>
           </dependency>
         </dependencies>
+
+        <!--mvn groovy:execute generate-collections 成功collections代码-->
         <executions>
           <execution>
             <id>generate-collections</id>
@@ -184,11 +186,16 @@
             <goals>
               <goal>execute</goal>
             </goals>
-            <configuration>
-              <source>${project.basedir}/src/main/script/codegen.groovy</source>
-            </configuration>
           </execution>
         </executions>
+
+        <!--将configuration 设置到外面，这是maven的一个bug
+         如果将configuration放在goals中有可能会运行失败。
+         https://stackoverflow.com/questions/39612317/cannot-execute-groovy-maven-plugin-as-a-goal
+        -->
+        <configuration>
+          <source>${project.basedir}/src/main/script/codegen.groovy</source>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>

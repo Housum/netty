@@ -21,6 +21,9 @@ import io.netty.util.internal.ObjectUtil;
 
 import java.nio.ByteOrder;
 
+/**
+ * 具体内存泄露检查功能的ByteBuf
+ */
 class SimpleLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
 
     final ResourceLeakTracker<ByteBuf> leak;

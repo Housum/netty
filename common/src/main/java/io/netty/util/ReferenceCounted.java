@@ -28,6 +28,10 @@ package io.netty.util;
  * {@link ReferenceCounted}, the contained objects will also be released via {@link #release()} when the container's
  * reference count becomes 0.
  * </p>
+ *
+ * 这个接口是为了垃圾回收而设计的，当初始化的时候，reference count 为1 ，
+ *
+ * 当调用retain的时候增加，release减少，当减为0的时候，就会被垃圾回收
  */
 public interface ReferenceCounted {
     /**
@@ -49,6 +53,10 @@ public interface ReferenceCounted {
      * Records the current access location of this object for debugging purposes.
      * If this object is determined to be leaked, the information recorded by this operation will be provided to you
      * via {@link ResourceLeakDetector}.  This method is a shortcut to {@link #touch(Object) touch(null)}.
+     *
+     * 这个方法会记录当前的执行位置（为了debug），如果这个对象被认为内存泄露了，那么这个方法会被ResourceLeakDetector调用
+     * 而返回这些信息
+     * @see #touch(Object)
      */
     ReferenceCounted touch();
 
@@ -64,6 +72,8 @@ public interface ReferenceCounted {
      * {@code 0}.
      *
      * @return {@code true} if and only if the reference count became {@code 0} and this object has been deallocated
+     *
+     * 只有在返回0的时候，并且当前对象已经内回收了才会返回true
      */
     boolean release();
 

@@ -40,6 +40,8 @@ import static io.netty.util.internal.MathUtil.isOutOfBounds;
 
 /**
  * A skeletal implementation of a buffer.
+ * ByteBuf的骨架实现
+ *
  */
 public abstract class AbstractByteBuf extends ByteBuf {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractByteBuf.class);
@@ -1402,6 +1404,8 @@ public abstract class AbstractByteBuf extends ByteBuf {
     /**
      * Should be called by every method that tries to access the buffers content to check
      * if the buffer was released before.
+     *
+     *  在调用方法之前都需要检查对象是否已经被释放了
      */
     protected final void ensureAccessible() {
         if (checkAccessible && refCnt() == 0) {

@@ -16,10 +16,7 @@
 package io.netty.example.discard;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -56,12 +53,22 @@ public final class DiscardServer {
              .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new ChannelInitializer<SocketChannel>() {
                  @Override
-                 public void initChannel(SocketChannel ch) {
-                     ChannelPipeline p = ch.pipeline();
+                 public void initChannel(final SocketChannel ch) {
+                     final ChannelPipeline p = ch.pipeline();
                      if (sslCtx != null) {
                          p.addLast(sslCtx.newHandler(ch.alloc()));
                      }
                      p.addLast(new DiscardServerHandler());
+
+                     // 从这里的close的方法是Outbound事件，如果我们在这里拦截了话，那么接下来的
+                     //Unsafe的close是不会被调用的，需要注意
+                     p.addLast(new ChannelOutboundHandlerAdapter() {
+
+                         @Override
+                         public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+                             System.out.println("close.....");
+                         }
+                     });
                  }
              });
 

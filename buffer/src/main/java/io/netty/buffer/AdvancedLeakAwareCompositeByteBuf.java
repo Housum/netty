@@ -33,6 +33,9 @@ import java.util.List;
 
 import static io.netty.buffer.AdvancedLeakAwareByteBuf.recordLeakNonRefCountingOperation;
 
+/**
+ * 使用提供的ResourceLeakTracker将每一个方法的执行栈记录下来
+ */
 final class AdvancedLeakAwareCompositeByteBuf extends SimpleLeakAwareCompositeByteBuf {
 
     AdvancedLeakAwareCompositeByteBuf(CompositeByteBuf wrapped, ResourceLeakTracker<ByteBuf> leak) {

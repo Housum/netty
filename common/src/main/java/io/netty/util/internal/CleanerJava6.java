@@ -77,8 +77,8 @@ final class CleanerJava6 implements Cleaner {
         try {
             Object cleaner = PlatformDependent0.getObject(buffer, CLEANER_FIELD_OFFSET);
             if (cleaner != null) {
-                CLEAN_METHOD.invoke(cleaner);
             }
+            CLEAN_METHOD.invoke(cleaner);
         } catch (Throwable cause) {
             PlatformDependent0.throwException(cause);
         }

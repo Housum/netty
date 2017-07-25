@@ -73,6 +73,15 @@ import java.net.SocketAddress;
  * It is important to call {@link #close()} or {@link #close(ChannelPromise)} to release all
  * resources once you are done with the {@link Channel}. This ensures all resources are
  * released in a proper way, i.e. filehandles.
+ *
+ * Channel是主要的一个接口（与IO或者套接字），
+ * 在Netty中所所有的操作都是异步的，所以
+ * 所以关于IO操作都是直接返回一个Future，我们可以通过监听时间的变化
+ * 来关注事件的状态:
+ * @see ChannelFuture
+ * @see ChannelProgressiveFuture
+ * @see ChannelPromise
+ *
  */
 public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparable<Channel> {
 
@@ -157,12 +166,14 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * requested write operation immediately.  Any write requests made when
      * this method returns {@code false} are queued until the I/O thread is
      * ready to process the queued write requests.
+     * 只有IO线程只能马上执行写请求的时候，才能返回true，否则的话就会将请求放入到队列中
      */
     boolean isWritable();
 
     /**
      * Get how many bytes can be written until {@link #isWritable()} returns {@code false}.
      * This quantity will always be non-negative. If {@link #isWritable()} is {@code false} then 0.
+     * 在直到{@link #isWritable()}返回false之前，还有多少字节能够写的
      */
     long bytesBeforeUnwritable();
 
@@ -184,6 +195,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
+     *
+     * 返回一个可以分配 {@link ByteBuf} 的分配器，其中分配的 {@link ByteBuf}有很多种类的实现，具体看调用的方法
      */
     ByteBufAllocator alloc();
 
@@ -205,12 +218,16 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *   <li>{@link #deregister(ChannelPromise)}</li>
      *   <li>{@link #voidPromise()}</li>
      * </ul>
+     * 这个类是真正实现传输协议的，这个类不能再用户的代码中使用，只在内部使用。
+     * 除了上面列出的几个方法之外，其他方法都需要在IO线程中被调用
+     *
      */
     interface Unsafe {
 
         /**
          * Return the assigned {@link RecvByteBufAllocator.Handle} which will be used to allocate {@link ByteBuf}'s when
          * receiving data.
+         * 返回一个当接受到数据时能够可以分配{@link ByteBuf}的这么一个对象
          */
         RecvByteBufAllocator.Handle recvBufAllocHandle();
 
@@ -229,6 +246,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Register the {@link Channel} of the {@link ChannelPromise} and notify
          * the {@link ChannelFuture} once the registration was complete.
+         * 将Channel进行注册，一旦注册成功的话，那么就会通知这个ChannelPromise
          */
         void register(EventLoop eventLoop, ChannelPromise promise);
 
@@ -274,6 +292,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Schedules a read operation that fills the inbound buffer of the first {@link ChannelInboundHandler} in the
          * {@link ChannelPipeline}.  If there's already a pending read operation, this method does nothing.
+         * 执行开会读操作，并且会将数据传给第一个 {@link ChannelInboundHandler}
          */
         void beginRead();
 
@@ -291,11 +310,15 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * Return a special ChannelPromise which can be reused and passed to the operations in {@link Unsafe}.
          * It will never be notified of a success or error and so is only a placeholder for operations
          * that take a {@link ChannelPromise} as argument but for which you not want to get notified.
+         *
+         * @see ChannelOutboundInvoker#voidPromise()
          */
         ChannelPromise voidPromise();
 
         /**
          * Returns the {@link ChannelOutboundBuffer} of the {@link Channel} where the pending write requests are stored.
+         * 返回一个{@link ChannelOutboundBuffer},主要的作用是在输出数据的时候进行对数据的缓存
+         *
          */
         ChannelOutboundBuffer outboundBuffer();
     }
