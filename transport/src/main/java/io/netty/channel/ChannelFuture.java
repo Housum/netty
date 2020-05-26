@@ -168,6 +168,10 @@ import java.util.concurrent.TimeUnit;
  * 2.await方法是堵塞的，建议不要使用，如果要使用的话，建议使用
  * Listener的方法
  *
+ *
+ * 所有的Netty操作都是异步的 所以返回的都是ChannelFuture,可能事件已经完成了,或者没有完成
+ * 监听事件的完成可以通过addListener增加Listener来实现
+ *
  */
 public interface ChannelFuture extends Future<Void> {
 
@@ -190,6 +194,9 @@ public interface ChannelFuture extends Future<Void> {
     @Override
     ChannelFuture removeListeners(GenericFutureListener<? extends Future<? super Void>>... listeners);
 
+    /**
+     * 堵塞知道事件完成
+     */
     @Override
     ChannelFuture sync() throws InterruptedException;
 

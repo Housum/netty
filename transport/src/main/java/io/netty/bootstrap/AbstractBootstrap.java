@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
+ * Bootstrap的抽象类 处理客户端和服务端两种形式
  * {@link AbstractBootstrap} is a helper class that makes it easy to bootstrap a {@link Channel}. It support
  * method-chaining to provide an easy way to configure the {@link AbstractBootstrap}.
  *
@@ -75,6 +76,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 处理IO事件
      * The {@link EventLoopGroup} which is used to handle all the events for the to-be-created
      * {@link Channel}
      */
@@ -91,6 +93,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     *
+     * 设置 Channel
+     *
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
@@ -164,6 +169,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they got
      * created. Use a value of {@code null} to remove a previous set {@link ChannelOption}.
+     * 设置channel的参数
+     *
      */
     @SuppressWarnings("unchecked")
     public <T> B option(ChannelOption<T> option, T value) {
@@ -185,6 +192,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
+     * 设置channel的参数
      */
     @SuppressWarnings("unchecked")
     public <T> B attr(AttributeKey<T> key, T value) {
@@ -206,6 +214,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Validate all the parameters. Sub-classes may override this, but should
      * call the super method in that case.
+     *
+     * 检查参数
+     *
      */
     @SuppressWarnings("unchecked")
     public B validate() {
@@ -229,6 +240,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and register it with an {@link EventLoop}.
+     * 开始注册 这一步只是将channel注册到selector上面 但是还没有进行绑定操作
      */
     public ChannelFuture register() {
         validate();
@@ -237,6 +249,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
+     * 注册并且绑定
      */
     public ChannelFuture bind() {
         validate();
@@ -249,6 +262,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
+     *
      */
     public ChannelFuture bind(int inetPort) {
         return bind(new InetSocketAddress(inetPort));
@@ -280,12 +294,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        //初始化并且注册
         final ChannelFuture regFuture = initAndRegister();
+
+        //获取到关联的channel
         final Channel channel = regFuture.channel();
+
+        //判断注册的结果
         if (regFuture.cause() != null) {
             return regFuture;
         }
 
+        //如果注册事件已经全部完成了的话 那么就是成功了
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
@@ -319,7 +339,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             channel = channelFactory.newChannel();
-            //进行Channel的初始化，包括设置
+            //进行Channel的初始化，子类进行实现具体的channel
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -330,14 +350,29 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        //这里把channel注册到了selector上面 @see io.netty.channel.nio.AbstractNioChannel.doRegister
+        //其中在默认的情况 注册之后都会直接开始读取数据 可以通过设置关联的ChannelConfig的autoRead属性为false
+        //这一步也是将channel的事件注册到了NioEventLoop的Selector上面,后面NioEventLoop就会开始一致查询是否有
+        //注册事件代码:
+        //io.netty.channel.nio.AbstractNioChannel.doRegister注册，
+        //io.netty.channel.nio.AbstractNioChannel.doBeginRead 订阅事件
         ChannelFuture regFuture = config().group().register(channel);
+
+        //检查是否注册成功
         if (regFuture.cause() != null) {
+            //如果已经注册了 那么进行关闭
             if (channel.isRegistered()) {
                 channel.close();
             } else {
                 channel.unsafe().closeForcibly();
             }
         }
+
+
+        //如果代码走到这一步的话  那么有两种可能 第一种就是已经完成注册事件了-因为注册事件就是在event loop中
+        //第二种可能就是还没有完成注册,因为当前不在event loop中
+
+        //这两种情况都是可以直接调用bind() or connect()的,因为这些事件都是在一个队列中的,所以执行的时候有先后顺序
 
         // If we are here and the promise is not failed, it's one of the following cases:
         // 1) If we attempted registration from the event loop, the registration has been completed at this point.
@@ -363,6 +398,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
+                    //进行绑定操作 这里就是涉及到了channel的NIO事件了 将会执行bind事件 最后通过channelPipeline进行传播
+                    //通过n到1执行 最后传播到io.netty.channel.DefaultChannelPipeline.HeadContext.bind
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     promise.setFailure(regFuture.cause());

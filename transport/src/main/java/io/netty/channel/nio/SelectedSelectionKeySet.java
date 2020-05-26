@@ -20,6 +20,10 @@ import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Iterator;
 
+/**
+ * 针对Selector中SelectionKey集合的优化 原有的是通过hashset存储的 会涉及到
+ * rehash的问题 所以采用数组的方式实现
+ */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 
     SelectionKey[] keys;

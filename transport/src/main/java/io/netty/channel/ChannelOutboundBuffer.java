@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 /**
+ * 缓冲用来存储发送出去的数据
  * (Transport implementors only) an internal data structure used by {@link AbstractChannel} to store its pending
  * outbound write requests.
  * <p>
@@ -142,7 +143,7 @@ public final class ChannelOutboundBuffer {
                 flushedEntry = entry;
             }
             do {
-                flushed ++;
+                flushed++;
                 if (!entry.promise.setUncancellable()) {
                     // Was cancelled so make sure we free up memory and notify about the freed bytes
                     int pending = entry.cancel();
@@ -301,7 +302,7 @@ public final class ChannelOutboundBuffer {
     }
 
     private void removeEntry(Entry e) {
-        if (-- flushed == 0) {
+        if (--flushed == 0) {
             // processed everything
             flushedEntry = null;
             if (e == tailEntry) {
@@ -318,7 +319,7 @@ public final class ChannelOutboundBuffer {
      * This operation assumes all messages in this buffer is {@link ByteBuf}.
      */
     public void removeBytes(long writtenBytes) {
-        for (;;) {
+        for (; ; ) {
             Object msg = current();
             if (!(msg instanceof ByteBuf)) {
                 assert writtenBytes == 0;
@@ -396,7 +397,7 @@ public final class ChannelOutboundBuffer {
                     int count = entry.count;
                     if (count == -1) {
                         //noinspection ConstantValueVariableUse
-                        entry.count = count =  buf.nioBufferCount();
+                        entry.count = count = buf.nioBufferCount();
                     }
                     int neededSpace = nioBufferCount + count;
                     if (neededSpace > nioBuffers.length) {
@@ -410,7 +411,7 @@ public final class ChannelOutboundBuffer {
                             // derived buffer
                             entry.buf = nioBuf = buf.internalNioBuffer(readerIndex, readableBytes);
                         }
-                        nioBuffers[nioBufferCount ++] = nioBuf;
+                        nioBuffers[nioBufferCount++] = nioBuf;
                     } else {
                         ByteBuffer[] nioBufs = entry.bufs;
                         if (nioBufs == null) {
@@ -431,11 +432,11 @@ public final class ChannelOutboundBuffer {
     }
 
     private static int fillBufferArray(ByteBuffer[] nioBufs, ByteBuffer[] nioBuffers, int nioBufferCount) {
-        for (ByteBuffer nioBuf: nioBufs) {
+        for (ByteBuffer nioBuf : nioBufs) {
             if (nioBuf == null) {
                 break;
             }
-            nioBuffers[nioBufferCount ++] = nioBuf;
+            nioBuffers[nioBufferCount++] = nioBuf;
         }
         return nioBufferCount;
     }
@@ -508,7 +509,7 @@ public final class ChannelOutboundBuffer {
 
     private void setUserDefinedWritability(int index) {
         final int mask = ~writabilityMask(index);
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue & mask;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -522,7 +523,7 @@ public final class ChannelOutboundBuffer {
 
     private void clearUserDefinedWritability(int index) {
         final int mask = writabilityMask(index);
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue | mask;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -542,7 +543,7 @@ public final class ChannelOutboundBuffer {
     }
 
     private void setWritable(boolean invokeLater) {
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue & ~1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -555,7 +556,7 @@ public final class ChannelOutboundBuffer {
     }
 
     private void setUnwritable(boolean invokeLater) {
-        for (;;) {
+        for (; ; ) {
             final int oldValue = unwritable;
             final int newValue = oldValue | 1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
@@ -612,7 +613,7 @@ public final class ChannelOutboundBuffer {
 
         try {
             inFail = true;
-            for (;;) {
+            for (; ; ) {
                 if (!remove0(cause, notify)) {
                     break;
                 }

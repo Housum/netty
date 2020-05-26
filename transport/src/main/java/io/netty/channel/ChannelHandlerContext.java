@@ -25,6 +25,9 @@ import io.netty.util.concurrent.EventExecutor;
 import java.nio.channels.Channels;
 
 /**
+ *
+ * 一个 Channel 包含了一个 ChannelPipeline，而 ChannelPipeline 中又维护了一个由 ChannelHandlerContext 组成的双向链表
+ *
  * Enables a {@link ChannelHandler} to interact with its {@link ChannelPipeline}
  * and other handlers. Among other things a handler can notify the next {@link ChannelHandler} in the
  * {@link ChannelPipeline} as well as modify the {@link ChannelPipeline} it belongs to dynamically.

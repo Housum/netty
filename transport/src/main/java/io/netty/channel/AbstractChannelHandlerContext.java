@@ -193,6 +193,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return this;
     }
 
+    //被pipeline触发
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
@@ -938,6 +939,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return false;
     }
 
+    //获取下一个handler
     private AbstractChannelHandlerContext findContextInbound() {
         AbstractChannelHandlerContext ctx = this;
         do {
@@ -946,6 +948,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return ctx;
     }
 
+    //获取上一个handler
     private AbstractChannelHandlerContext findContextOutbound() {
         AbstractChannelHandlerContext ctx = this;
         do {

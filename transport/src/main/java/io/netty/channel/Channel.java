@@ -40,7 +40,7 @@ import java.net.SocketAddress;
  *     associated with the channel.</li>
  * </ul>
  *
- * <h3>All I/O operations are asynchronous.</h3>
+ * <h3>All I/O operations are asynchronous. 在netty中的操作都是异步的</h3>
  * <p>
  * All I/O operations in Netty are asynchronous.  It means any I/O calls will
  * return immediately with no guarantee that the requested I/O operation has
@@ -48,7 +48,10 @@ import java.net.SocketAddress;
  * a {@link ChannelFuture} instance which will notify you when the requested I/O
  * operation has succeeded, failed, or canceled.
  *
- * <h3>Channels are hierarchical</h3>
+ * 因为是异步的,所以在执行完成异步操作之后就立刻返回,但是并不能代表已经执行完成了,只能通过后面
+ * 检查返回的ChannelFuture的状态
+ *
+ * <h3>Channels are hierarchical Channel具有层级关系</h3>
  * <p>
  * A {@link Channel} can have a {@linkplain #parent() parent} depending on
  * how it was created.  For instance, a {@link SocketChannel}, that was accepted
@@ -61,7 +64,7 @@ import java.net.SocketAddress;
  * share one socket connection, as <a href="http://beepcore.org/">BEEP</a> and
  * <a href="http://en.wikipedia.org/wiki/Secure_Shell">SSH</a> do.
  *
- * <h3>Downcast to access transport-specific operations</h3>
+ * <h3>Downcast to access transport-specific operations 向下转换具体的实现</h3>
  * <p>
  * Some transports exposes additional operations that is specific to the
  * transport.  Down-cast the {@link Channel} to sub-type to invoke such
@@ -92,11 +95,14 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Return the {@link EventLoop} this {@link Channel} was registered to.
+     * 指定该channel的EventLoop,单个channel的所有操作都在该EventLoop中被执行
      */
     EventLoop eventLoop();
 
     /**
      * Returns the parent of this channel.
+     *
+     * channel是具有层级概念的,比对SocketChannel的父级是ServerSocketChannel
      *
      * @return the parent channel.
      *         {@code null} if this channel does not have a parent channel.
@@ -105,26 +111,31 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Returns the configuration of this channel.
+     * 该channel的配置
      */
     ChannelConfig config();
 
     /**
      * Returns {@code true} if the {@link Channel} is open and may get active later
+     * 连接是否打开
      */
     boolean isOpen();
 
     /**
      * Returns {@code true} if the {@link Channel} is registered with an {@link EventLoop}.
+     * 是否注册到了EventLoop
      */
     boolean isRegistered();
 
     /**
      * Return {@code true} if the {@link Channel} is active and so connected.
+     * 是否存活（已经来接上了）
      */
     boolean isActive();
 
     /**
      * Return the {@link ChannelMetadata} of the {@link Channel} which describe the nature of the {@link Channel}.
+     * 返回原始的channel的参数
      */
     ChannelMetadata metadata();
 
@@ -133,6 +144,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * {@link SocketAddress} is supposed to be down-cast into more concrete
      * type such as {@link InetSocketAddress} to retrieve the detailed
      * information.
+     * 绑定的本地地址
      *
      * @return the local address of this channel.
      *         {@code null} if this channel is not bound.
@@ -144,6 +156,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * returned {@link SocketAddress} is supposed to be down-cast into more
      * concrete type such as {@link InetSocketAddress} to retrieve the detailed
      * information.
+     *
+     * 连接的远程地址
      *
      * @return the remote address of this channel.
      *         {@code null} if this channel is not connected.
@@ -158,6 +172,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     /**
      * Returns the {@link ChannelFuture} which will be notified when this
      * channel is closed.  This method always returns the same future instance.
+     * 返回特定的一个ChannelFuture,只有在关闭的时候isDone返回true
      */
     ChannelFuture closeFuture();
 
@@ -185,20 +200,23 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Returns an <em>internal-use-only</em> object that provides unsafe operations.
+     * 所有的native操作都将在Unsafe中
      */
     Unsafe unsafe();
 
     /**
      * Return the assigned {@link ChannelPipeline}.
+     * ChannelPipeline 对于NIO事件 执行的方式是一个责任链中
+     * https://blog.csdn.net/guying4875/article/details/83789338
      */
     ChannelPipeline pipeline();
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
-     *
      * 返回一个可以分配 {@link ByteBuf} 的分配器，其中分配的 {@link ByteBuf}有很多种类的实现，具体看调用的方法
      */
     ByteBufAllocator alloc();
+
 
     @Override
     Channel read();
@@ -218,8 +236,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *   <li>{@link #deregister(ChannelPromise)}</li>
      *   <li>{@link #voidPromise()}</li>
      * </ul>
-     * 这个类是真正实现传输协议的，这个类不能再用户的代码中使用，只在内部使用。
-     * 除了上面列出的几个方法之外，其他方法都需要在IO线程中被调用
+     *
+     * 该类是物理操作
      *
      */
     interface Unsafe {
@@ -246,13 +264,14 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Register the {@link Channel} of the {@link ChannelPromise} and notify
          * the {@link ChannelFuture} once the registration was complete.
-         * 将Channel进行注册，一旦注册成功的话，那么就会通知这个ChannelPromise
+         * 将真实的JAVA NIO的Channel进行注册到Selector上去，一旦注册成功的话，那么就会通知这个ChannelPromise
          */
         void register(EventLoop eventLoop, ChannelPromise promise);
 
         /**
          * Bind the {@link SocketAddress} to the {@link Channel} of the {@link ChannelPromise} and notify
          * it once its done.
+         * 进行物理地址的绑定操作
          */
         void bind(SocketAddress localAddress, ChannelPromise promise);
 
@@ -262,47 +281,54 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * pass {@code null} to it.
          *
          * The {@link ChannelPromise} will get notified once the connect operation was complete.
+         * 进行物理地址的连接操作
          */
         void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise);
 
         /**
          * Disconnect the {@link Channel} of the {@link ChannelFuture} and notify the {@link ChannelPromise} once the
          * operation was complete.
+         * 断开连接 如果关闭成功的话 那么ChannelPromise就被回调
          */
         void disconnect(ChannelPromise promise);
 
         /**
          * Close the {@link Channel} of the {@link ChannelPromise} and notify the {@link ChannelPromise} once the
          * operation was complete.
+         * 关闭连接
          */
         void close(ChannelPromise promise);
 
         /**
          * Closes the {@link Channel} immediately without firing any events.  Probably only useful
          * when registration attempt failed.
+         * 马上关闭 非异步操作
          */
         void closeForcibly();
 
         /**
          * Deregister the {@link Channel} of the {@link ChannelPromise} from {@link EventLoop} and notify the
          * {@link ChannelPromise} once the operation was complete.
+         * 解注册
          */
         void deregister(ChannelPromise promise);
 
         /**
          * Schedules a read operation that fills the inbound buffer of the first {@link ChannelInboundHandler} in the
          * {@link ChannelPipeline}.  If there's already a pending read operation, this method does nothing.
-         * 执行开会读操作，并且会将数据传给第一个 {@link ChannelInboundHandler}
+         * 执行读操作，并且会将数据传给第一个 {@link ChannelInboundHandler}
          */
         void beginRead();
 
         /**
          * Schedules a write operation.
+         * 写消息操作
          */
         void write(Object msg, ChannelPromise promise);
 
         /**
          * Flush out all write operations scheduled via {@link #write(Object, ChannelPromise)}.
+         * 刷新数据
          */
         void flush();
 
@@ -312,13 +338,13 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * that take a {@link ChannelPromise} as argument but for which you not want to get notified.
          *
          * @see ChannelOutboundInvoker#voidPromise()
+         * 返回一个特殊的ChannelPromise 这个ChannelPromise不会被通知 只是作为一个占位符的作用
          */
         ChannelPromise voidPromise();
 
         /**
          * Returns the {@link ChannelOutboundBuffer} of the {@link Channel} where the pending write requests are stored.
          * 返回一个{@link ChannelOutboundBuffer},主要的作用是在输出数据的时候进行对数据的缓存
-         *
          */
         ChannelOutboundBuffer outboundBuffer();
     }

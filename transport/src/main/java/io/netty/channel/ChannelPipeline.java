@@ -29,6 +29,11 @@ import java.util.NoSuchElementException;
 
 
 /**
+ *
+ * 保存 ChannelHandler 的 List，用于处理或拦截 Channel 的入站事件和出站操作。
+ *
+ * ChannelPipeline 实现了一种高级形式的拦截过滤器模式，使用户可以完全控制事件的处理方式，以及 Channel 中各个的 ChannelHandler 如何相互交互。
+ *
  * A list of {@link ChannelHandler}s which handles or intercepts inbound events and outbound operations of a
  * {@link Channel}.  {@link ChannelPipeline} implements an advanced form of the
  * <a href="http://www.oracle.com/technetwork/java/interceptingfilter-142169.html">Intercepting Filter</a> pattern
@@ -38,6 +43,8 @@ import java.util.NoSuchElementException;
  * <h3>Creation of a pipeline</h3>
  *
  * Each channel has its own pipeline and it is created automatically when a new channel is created.
+ *
+ * 当一个channel被创建的时候 他的pipeline会自动的创建
  *
  * <h3>How an event flows in a pipeline</h3>
  *
@@ -128,7 +135,8 @@ import java.util.NoSuchElementException;
  * As you might noticed in the diagram shows, a handler has to invoke the event propagation methods in
  * {@link ChannelHandlerContext} to forward an event to its next handler.  Those methods include:
  * <ul>
- * <li>Inbound event propagation methods:
+ * <li>Inbound event propagation methods-这部分是进来的事件 上一个handler可以通过调用这些方法将请求传到下一个handler,如果
+ * 没有调用的话 那么将会被终止:
  *     <ul>
  *     <li>{@link ChannelHandlerContext#fireChannelRegistered()}</li>
  *     <li>{@link ChannelHandlerContext#fireChannelActive()}</li>
@@ -141,7 +149,7 @@ import java.util.NoSuchElementException;
  *     <li>{@link ChannelHandlerContext#fireChannelUnregistered()}</li>
  *     </ul>
  * </li>
- * <li>Outbound event propagation methods:
+ * <li>Outbound event propagation methods-这部分是出去的事件,上一个handler可以通过调用这些方法将请求下发到下一个handler:
  *     <ul>
  *     <li>{@link ChannelHandlerContext#bind(SocketAddress, ChannelPromise)}</li>
  *     <li>{@link ChannelHandlerContext#connect(SocketAddress, SocketAddress, ChannelPromise)}</li>
@@ -162,6 +170,10 @@ import java.util.NoSuchElementException;
  *     {@code @Override}
  *     public void channelActive({@link ChannelHandlerContext} ctx) {
  *         System.out.println("Connected!");
+ *         //这里很重要 如果是之前处理之后的消息还需要处理的话 那么通过
+ *         //调用ctx.fireChannel*将事件往下传播  否则的话在这一步就终止逻辑了
+ *         //比如ctx.channelRead解码之后 需要将解码之后的对象向下传播 那么可以通过
+ *         //ctx.fireChannelRead将对象传播下去
  *         ctx.fireChannelActive();
  *     }
  * }
@@ -170,6 +182,8 @@ import java.util.NoSuchElementException;
  *     {@code @Override}
  *     public void close({@link ChannelHandlerContext} ctx, {@link ChannelPromise} promise) {
  *         System.out.println("Closing ..");
+ *         //这里很重要 对于出去的事件 需要执行实际的操作
+ *         //比如write方法 那么需要调用ctx.write才是真正的将数据发送出去
  *         ctx.close(promise);
  *     }
  * }
@@ -204,6 +218,7 @@ import java.util.NoSuchElementException;
  * // a time-consuming task.
  * // If your business logic is fully asynchronous or finished very quickly, you don't
  * // need to specify a group.
+ * 也可以在pipeline指定执行任务的线程池
  * pipeline.addLast(group, "handler", new MyBusinessLogicHandler());
  * </pre>
  *
@@ -212,12 +227,17 @@ import java.util.NoSuchElementException;
  * A {@link ChannelHandler} can be added or removed at any time because a {@link ChannelPipeline} is thread safe.
  * For example, you can insert an encryption handler when sensitive information is about to be exchanged, and remove it
  * after the exchange.
+ *
+ * 是一个责任链的高级用法 事件可以在其中进行执行
+ *
  */
 public interface ChannelPipeline
         extends ChannelInboundInvoker, ChannelOutboundInvoker, Iterable<Entry<String, ChannelHandler>> {
 
     /**
      * Inserts a {@link ChannelHandler} at the first position of this pipeline.
+     *
+     * 将事件加到最后
      *
      * @param name     the name of the handler to insert first
      * @param handler  the handler to insert first
@@ -231,6 +251,9 @@ public interface ChannelPipeline
 
     /**
      * Inserts a {@link ChannelHandler} at the first position of this pipeline.
+     *
+     *
+     * 加上自己的线程池
      *
      * @param group    the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}
      *                 methods
@@ -259,6 +282,10 @@ public interface ChannelPipeline
 
     /**
      * Appends a {@link ChannelHandler} at the last position of this pipeline.
+     *
+     *
+     * 这里的参数EventExecutorGroup 可以通过自定义的线程池专门进行处理这个handler事件
+     *
      *
      * @param group    the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}
      *                 methods

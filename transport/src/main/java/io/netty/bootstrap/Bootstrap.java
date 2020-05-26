@@ -45,6 +45,8 @@ import java.util.Map.Entry;
  *
  * <p>The {@link #bind()} methods are useful in combination with connectionless transports such as datagram (UDP).
  * For regular TCP connections, please use the provided {@link #connect()} methods.</p>
+ * 客户端的服务,对服务端的连接操作
+ *
  */
 public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 

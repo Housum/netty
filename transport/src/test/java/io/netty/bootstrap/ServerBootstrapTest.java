@@ -15,20 +15,20 @@
  */
 package io.netty.bootstrap;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerAdapter;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.EventLoopGroup;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.*;
 import io.netty.channel.local.LocalAddress;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.local.LocalEventLoopGroup;
 import io.netty.channel.local.LocalServerChannel;
+import io.netty.channel.nio.NioEventLoop;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.junit.Test;
 
+import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,20 +46,20 @@ public class ServerBootstrapTest {
         try {
             ServerBootstrap sb = new ServerBootstrap();
             sb.channel(LocalServerChannel.class)
-              .group(group)
-              .childHandler(new ChannelInboundHandlerAdapter())
-              .handler(new ChannelHandlerAdapter() {
-                  @Override
-                  public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-                      try {
-                          assertTrue(ctx.executor().inEventLoop());
-                      } catch (Throwable cause) {
-                          error.set(cause);
-                      } finally {
-                          latch.countDown();
-                      }
-                  }
-              });
+                    .group(group)
+                    .childHandler(new ChannelInboundHandlerAdapter())
+                    .handler(new ChannelHandlerAdapter() {
+                        @Override
+                        public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+                            try {
+                                assertTrue(ctx.executor().inEventLoop());
+                            } catch (Throwable cause) {
+                                error.set(cause);
+                            } finally {
+                                latch.countDown();
+                            }
+                        }
+                    });
             sb.register().syncUninterruptibly();
             latch.await();
             assertNull(error.get());
@@ -137,4 +137,73 @@ public class ServerBootstrapTest {
             group.shutdownGracefully();
         }
     }
+
+    public static void main(String args[]) throws Exception {
+
+        NioEventLoopGroup loopGroup = new NioEventLoopGroup(2);
+
+        ServerBootstrap serverBootstrap = new ServerBootstrap();
+        serverBootstrap.group(loopGroup, loopGroup)
+                .option(ChannelOption.SO_BACKLOG, 100)
+                .channel(NioServerSocketChannel.class)
+                .childHandler(new ChannelInitializer<Channel>() {
+
+                    @Override
+                    protected void initChannel(final Channel ch) throws Exception {
+
+                        ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                ByteBuf buf = (ByteBuf) msg;
+                                byte[] contents = new byte[buf.readInt()];
+                                buf.readBytes(contents);
+                                ctx.fireChannelRead( Base64.decode(contents));
+                            }
+
+                            @Override
+                            public void channelReadComplete(ChannelHandlerContext ctx) {
+                                ctx.flush();
+                            }
+
+                            @Override
+                            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                // Close the connection when an exception is raised.
+                                cause.printStackTrace();
+                                ctx.close();
+                            }
+                        }).addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                            }
+                        });
+                    }
+                });
+
+        ChannelFuture f = serverBootstrap.bind(8999).sync();
+        f.channel().closeFuture().sync();
+    }
+
+    public static class Obj {
+        private long startTime;
+        private byte[] encodeByte;
+
+        public long getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(long startTime) {
+            this.startTime = startTime;
+        }
+
+        public byte[] getEncodeByte() {
+            return encodeByte;
+        }
+
+        public void setEncodeByte(byte[] encodeByte) {
+            this.encodeByte = encodeByte;
+        }
+    }
+
+
 }

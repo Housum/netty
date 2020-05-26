@@ -16,39 +16,35 @@
 
 package io.netty.bootstrap;
 
-import io.netty.channel.Channel;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
 import io.netty.channel.ChannelFactory;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
-import io.netty.channel.ChannelInboundHandler;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultEventLoop;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ServerChannel;
 import io.netty.channel.local.LocalAddress;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.local.LocalServerChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.resolver.AddressResolver;
 import io.netty.resolver.AddressResolverGroup;
 import io.netty.resolver.AbstractAddressResolver;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import java.net.ConnectException;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.RandomAccessFile;
+import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -82,7 +78,7 @@ public class BootstrapTest {
         List<Future<?>> bindFutures = new ArrayList<Future<?>>();
 
         // Try to bind from each other.
-        for (int i = 0; i < 1024; i ++) {
+        for (int i = 0; i < 1024; i++) {
             bindFutures.add(groupA.next().submit(new Runnable() {
                 @Override
                 public void run() {
@@ -98,7 +94,7 @@ public class BootstrapTest {
             }));
         }
 
-        for (Future<?> f: bindFutures) {
+        for (Future<?> f : bindFutures) {
             f.sync();
         }
     }
@@ -118,7 +114,7 @@ public class BootstrapTest {
         List<Future<?>> bindFutures = new ArrayList<Future<?>>();
 
         // Try to connect from each other.
-        for (int i = 0; i < 1024; i ++) {
+        for (int i = 0; i < 1024; i++) {
             bindFutures.add(groupA.next().submit(new Runnable() {
                 @Override
                 public void run() {
@@ -134,7 +130,7 @@ public class BootstrapTest {
             }));
         }
 
-        for (Future<?> f: bindFutures) {
+        for (Future<?> f : bindFutures) {
             f.sync();
         }
     }
@@ -279,11 +275,11 @@ public class BootstrapTest {
                 .handler(dummyHandler)
                 .group(groupA)
                 .channelFactory(new ChannelFactory<Channel>() {
-            @Override
-            public Channel newChannel() {
-                throw exception;
-            }
-        });
+                    @Override
+                    public Channel newChannel() {
+                        throw exception;
+                    }
+                });
 
         ChannelFuture connectFuture = bootstrap.connect(LocalAddress.ANY);
 
@@ -334,7 +330,8 @@ public class BootstrapTest {
     }
 
     @Sharable
-    private static final class DummyHandler extends ChannelInboundHandlerAdapter { }
+    private static final class DummyHandler extends ChannelInboundHandlerAdapter {
+    }
 
     private static final class TestAddressResolverGroup extends AddressResolverGroup<SocketAddress> {
 
@@ -385,5 +382,45 @@ public class BootstrapTest {
                 }
             };
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        NioEventLoopGroup loopGroup = new NioEventLoopGroup(2);
+
+        Bootstrap serverBootstrap = new Bootstrap();
+        serverBootstrap.group(loopGroup)
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .handler(new ChannelOutboundHandlerAdapter() {
+                    @Override
+                    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+//                        ServerBootstrapTest.Obj obj = (ServerBootstrapTest.Obj) msg;
+//                        ByteBuf buf = Unpooled.buffer(obj.getFoo().getBytes().length);
+//                        buf.writeInt(obj.getFoo().getBytes().length);
+//                        buf.writeBytes(obj.getFoo().getBytes());
+//                        ctx.write(buf, promise);
+                    }
+
+                    @Override
+                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                        cause.printStackTrace();
+                    }
+                });
+
+        ChannelFuture f = serverBootstrap.connect(new InetSocketAddress(8999)).sync();
+        final Channel channel = f.channel();
+
+        f.addListener(new GenericFutureListener<Future<? super Void>>() {
+            @Override
+            public void operationComplete(Future<? super Void> future) throws Exception {
+                for (int i = 0; i < 20; i++) {
+                    ServerBootstrapTest.Obj obj = new ServerBootstrapTest.Obj();
+                    obj.setStartTime(System.currentTimeMillis()/1000);
+                    channel.writeAndFlush(obj);
+                }
+            }
+        });
+        f.channel().closeFuture().sync();
     }
 }

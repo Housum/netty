@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract base class for {@link Channel} implementations which use a Selector based approach.
+ * 针对NIO的抽象Channel实现
  */
 public abstract class AbstractNioChannel extends AbstractChannel {
 
@@ -54,7 +55,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final ClosedChannelException DO_CLOSE_CLOSED_CHANNEL_EXCEPTION = ThrowableUtil.unknownStackTrace(
             new ClosedChannelException(), AbstractNioChannel.class, "doClose()");
 
+    //实际上的Channel
     private final SelectableChannel ch;
+    //订阅的读取事件
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
@@ -384,7 +387,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
-                // 将JAVA NIO Channel 进行注册操作
+                // 将JAVA NIO Channel 注册时感兴趣的事件 这里很关键 将channel注册到了NioEventLoop上面了
+                // 后面NioEventLoop就可以在上面进行查询是否有事件触发了
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -418,6 +422,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         readPending = true;
 
         final int interestOps = selectionKey.interestOps();
+        //设置感兴趣的读取事件 对于ServerSocketChannel是OP_ACCEPT 对于SocketChannel是OP_READ
         if ((interestOps & readInterestOp) == 0) {
             selectionKey.interestOps(interestOps | readInterestOp);
         }

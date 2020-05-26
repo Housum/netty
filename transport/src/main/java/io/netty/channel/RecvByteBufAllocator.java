@@ -23,6 +23,7 @@ import io.netty.util.internal.UnstableApi;
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
 /**
+ * 用来保存进来的数据
  * Allocates a new receive buffer whose capacity is probably large enough to read all inbound data and small enough
  * not to waste its space.
  */

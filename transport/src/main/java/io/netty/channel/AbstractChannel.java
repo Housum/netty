@@ -87,6 +87,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         this.parent = parent;
         id = newId();
         unsafe = newUnsafe();
+        //初始化关联的pipeline
         pipeline = newChannelPipeline();
     }
 
@@ -433,7 +434,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     protected abstract class AbstractUnsafe implements Unsafe {
 
+        //数据出去的时候的缓冲
         private volatile ChannelOutboundBuffer outboundBuffer = new ChannelOutboundBuffer(AbstractChannel.this);
+        //数据进来的时候的缓冲
         private RecvByteBufAllocator.Handle recvHandle;
         private boolean inFlush0;
         /** true if the channel has never been registered, false otherwise */
@@ -512,26 +515,38 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                //进行注册操作
                 doRegister();
                 neverRegistered = false;
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+
+                //触发channelHandler增加事件
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                //将promise设置成功
                 safeSetSuccess(promise);
+
+                //触发注册成功事件 通过pipeline 链式触发channelhandler事件
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
                 if (isActive()) {
+
+                    //第一次注册的时候触发事件
                     if (firstRegistration) {
+                        //触发激活事件
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
                         // This channel was registered before and autoRead() is set. This means we need to begin read
                         // again so that we process inbound data.
                         //
                         // See https://github.com/netty/netty/issues/4805
+
+                        //注册读取事件
+                        //新的连接或者是新的数据
                         beginRead();
                     }
                 }
@@ -780,6 +795,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            //事件增加读数据(OP_READ或者OP_ACCEPT)
             try {
                 doBeginRead();
             } catch (final Exception e) {

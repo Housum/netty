@@ -39,6 +39,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * {@link Bootstrap} sub-class which allows easy bootstrap of {@link ServerChannel}
  *
+ * 服务端的启动类 主要的功能就是接受NIO请求 放入到EventLoopGroup进行处理
+ *
+ * ServerBootstrap实现的是多路复用的能力,所以在其中有两个EventLoopGroup,一个是处理物理连接的线程
+ * 一个是处理接受的channel事件的EventLoopGroup. 基于前面讲的,所以在channelHandler有两种选择,一种是注册在
+ * boss上面,就是接受channel的时候会被触发,一种是注册到worker上面,在处理channel业务的时候会被触发
+ *
  */
 public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerChannel> {
 
@@ -46,6 +52,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
+    //配置
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
     private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
@@ -76,6 +83,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * Set the {@link EventLoopGroup} for the parent (acceptor) and the child (client). These
      * {@link EventLoopGroup}'s are used to handle all the events and IO for {@link ServerChannel} and
      * {@link Channel}'s.
+     * 注册工作线程
      */
     public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
         super.group(parentGroup);
@@ -93,6 +101,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they get created
      * (after the acceptor accepted the {@link Channel}). Use a value of {@code null} to remove a previous set
      * {@link ChannelOption}.
+     * 添加新生成会话的TCP配置
      */
     public <T> ServerBootstrap childOption(ChannelOption<T> childOption, T value) {
         if (childOption == null) {
@@ -128,6 +137,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     /**
      * Set the {@link ChannelHandler} which is used to serve the request for the {@link Channel}'s.
+     * 连接会话的ChannelHandler
      */
     public ServerBootstrap childHandler(ChannelHandler childHandler) {
         if (childHandler == null) {
@@ -166,11 +176,15 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(childAttrs.size()));
         }
 
+        //这里就是在boss上面加入channelHandler,其中把自定义的boss handler加入其中
+        //同时增加一个handler,使用多路复用
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {
                 final ChannelPipeline pipeline = ch.pipeline();
                 ChannelHandler handler = config.handler();
+
+                //这个是属于serverBootstrap的handler,所以会在执行完这些handler之后在执行ServerBootstrapAcceptor
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
@@ -178,6 +192,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
+                        //这里很重要 这里就是reactor模式的重点,在boss接收到了channel之后
+                        //都是在其中分配新的线程进行处理
                         pipeline.addLast(new ServerBootstrapAcceptor(
                                 ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
                     }
@@ -209,6 +225,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return new Map.Entry[size];
     }
 
+    /**
+     * https://www.jianshu.com/p/eef7ebe28673
+     *
+     * 对于接收到的channel 这里分配新的线程进行处理 reactor中的事件分离器 将事件从接受线程分离出来到处理器中进行处理
+     */
     private static class ServerBootstrapAcceptor extends ChannelInboundHandlerAdapter {
 
         private final EventLoopGroup childGroup;
@@ -220,7 +241,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         ServerBootstrapAcceptor(
                 final Channel channel, EventLoopGroup childGroup, ChannelHandler childHandler,
                 Entry<ChannelOption<?>, Object>[] childOptions, Entry<AttributeKey<?>, Object>[] childAttrs) {
-            this.childGroup = childGroup;
+
+            //接受到客户端channel之后的线程池处理器
+             this.childGroup = childGroup;
+            //一般的用户编程都是写在这里 事件处理器
             this.childHandler = childHandler;
             this.childOptions = childOptions;
             this.childAttrs = childAttrs;
@@ -238,11 +262,21 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        /**
+         * 这里接受到的不是消息 而是一个连接 在连接到来之后，需要将这些连接注册到
+         * childGroup线程池中进行处理
+         *
+         * @see io.netty.channel.socket.nio.NioServerSocketChannel.doReadMessages
+         * @param ctx
+         * @param msg
+         */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            //该连接是客户端和服务端的连接 之后的通信都是通过它
             final Channel child = (Channel) msg;
 
+            //将childhandler放入到channel的pipeline中去
             child.pipeline().addLast(childHandler);
 
             setChannelOptions(child, childOptions, logger);
@@ -252,6 +286,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             }
 
             try {
+                //将channel进行注册到其中，此channel的事件都将在group的线程中执行
+                //其中的EventLoop会轮询selector上面的NIO事件 进行处理
+               //注册事件代码:
+                //io.netty.channel.nio.AbstractNioChannel.doRegister注册，
+                // io.netty.channel.nio.AbstractNioChannel.doBeginRead 订阅事件
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
