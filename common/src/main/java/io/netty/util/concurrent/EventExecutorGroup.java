@@ -38,7 +38,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
 
     /**
      * Shortcut method for {@link #shutdownGracefully(long, long, TimeUnit)} with sensible default values.
-     *
+     * shutdownGracefully(long, long, TimeUnit)的简单版本 不需要指定参数
      * @return the {@link #terminationFuture()}
      */
     Future<?> shutdownGracefully();
